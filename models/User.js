@@ -15,6 +15,22 @@ const UserSchema = new mongoose.Schema({
         required: true,
         minlength: 8,
         select: false
+    },
+    pdp: { 
+        type: String
+    },
+    role: {
+        type: String,
+        enum: ['admin', 'shop','user'],
+        default: 'user'
+    },
+    status: {
+        type: String,
+        enum: ['active', 'inactive'],
+        default: 'active'
+    },
+    phone: { 
+        type: String
     }
 }, { timestamps: true });
 

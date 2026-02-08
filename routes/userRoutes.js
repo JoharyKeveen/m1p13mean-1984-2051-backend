@@ -3,6 +3,33 @@ const router = express.Router();
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 
+const isAuthenticated = (req, res, next) => {
+  if (!req.session.user) {
+    return res.status(401).json({ message: 'Non connecté' });
+  }
+  next();
+};
+
+const checkStatus = (req, res, next) => {
+  if (req.session.user.status !== 'active') {
+    return res.status(403).json({
+      message: 'Compte inactif'
+    });
+  }
+  next();
+};
+
+const checkRole = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.session.user.role)) {
+      return res.status(403).json({
+        message: 'Accès interdit'
+      });
+    }
+    next();
+  };
+};
+
 router.post('/signup', async (req, res) => {
   try {
     const user = new User(req.body);
@@ -26,6 +53,12 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Email incorrect' });
     }
 
+    if (user.status !== 'active') {
+      return res.status(403).json({
+        message: 'Compte inactif'
+      });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
@@ -34,7 +67,10 @@ router.post('/login', async (req, res) => {
     req.session.user = {
       id: user._id,
       name: user.name,
-      email: user.email
+      email: user.email,
+      role: user.role,
+      pdp: user.pdp,
+      status: user.status
     };
 
     res.status(200).json({
@@ -47,12 +83,13 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.get('/me', (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).json({ message: 'Non connecté' });
-  }
-  res.status(200).json({ user: req.session.user });
-});
+router.get('/me',
+  isAuthenticated,
+  checkStatus,
+    (req, res) => {
+      res.status(200).json({ user: req.session.user });
+    }
+);
 
 router.post('/logout', (req, res) => {
   req.session.destroy(err => {
@@ -62,5 +99,16 @@ router.post('/logout', (req, res) => {
   });
 });
 
+router.patch('/users/:id/delete',
+  isAuthenticated,
+  checkStatus,
+  checkRole('admin'),
+  async (req, res) => {
+    await User.findByIdAndUpdate(req.params.id, {
+      status: 'inactive'
+    });
+    res.json({ message: 'Utilisateur désactivé' });
+  }
+);
 
 module.exports = router;
