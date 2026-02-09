@@ -1,10 +1,20 @@
 const bcrypt = require("bcrypt");
 const mongoose = require("mongoose");
+const { ROLES, DEFAULT_ROLE } = require("../config/roles");
 
 const userSchema = mongoose.Schema({
-  name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  last_name: { type: String, required: true },
+  first_name: { type: String, required: true },
+  pdp_url: { type: String },
+  role: { type: String, enum: ROLES, default: DEFAULT_ROLE, required: true },
+  phone : { type: String },
+  status: { type: Boolean, default: true },
+  createdAt: { type: Date, default: Date.now },
+  order: { type: mongoose.Schema.Types.ObjectId, ref: "Order" },
+  Notification: [{ type: mongoose.Schema.Types.ObjectId, ref: "Notification" }],
+  order_history: [{ type: mongoose.Schema.Types.ObjectId, ref: "Order" }],
 });
 
 userSchema.pre("save", async function () {
