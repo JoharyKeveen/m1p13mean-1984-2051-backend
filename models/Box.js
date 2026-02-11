@@ -1,0 +1,29 @@
+const mongoose = require('mongoose');
+
+const BoxSchema = new mongoose.Schema({
+  size: { type: Number, required: true },
+  price: { type: Number, required: true },
+  status: { type: String, enum: ['available', 'occupied'], default: 'available' },
+
+  // Relations
+  store: { type: mongoose.Schema.Types.ObjectId, ref: 'Store', default: null },
+  contract: { type: mongoose.Schema.Types.ObjectId, ref: 'Contract', default: null },
+
+  // Historique
+  price_history: [Number],
+  store_history: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Store'
+    }
+  ],
+  contract_history: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Contract'
+    }
+  ]
+
+}, { timestamps: true });
+
+module.exports = mongoose.model('Box', BoxSchema);

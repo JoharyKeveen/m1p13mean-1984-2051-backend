@@ -22,7 +22,9 @@ router.post(
   multerErrorHandler,
   registerUser,
 );
+
 router.post("/login", loginUser);
+
 router.put(
   "/upload-profile-picture/:id",
   upload.single("pdp"),
