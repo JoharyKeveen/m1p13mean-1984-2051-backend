@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
+const itemRoutes = require("./routes/itemRoutes");
 const cors = require("cors");
 const path = require("path");
 
@@ -20,6 +21,9 @@ app.use("/api/users", userRoutes);
 app.get("/", (req, res) => {
   res.send("Hello world");
 });
+
+// ITEMS
+app.use("/api/items", itemRoutes);
 
 // Lancement du serveur
 const PORT = process.env.PORT || 5000;

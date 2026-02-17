@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const BoxSchema = new mongoose.Schema({
+const boxSchema = new mongoose.Schema({
   size: { type: Number, required: true },
   price: { type: Number, required: true },
   status: { type: String, enum: ['available', 'occupied'], default: 'available' },
@@ -26,4 +26,4 @@ const BoxSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
-module.exports = mongoose.model('Box', BoxSchema);
+module.exports = mongoose.model('Box', boxSchema);

@@ -10,10 +10,10 @@ const monthlyPeriodSchema = new mongoose.Schema({
   },
 });
 
-const ContractSchema = new mongoose.Schema(
+const contractSchema = new mongoose.Schema(
   {
     file: { type: String, required: true },
     periods: [monthlyPeriodSchema],
   },{ timestamps: true });
 
-module.exports = mongoose.model("Contract", ContractSchema);
+module.exports = mongoose.model("Contract", contractSchema);
