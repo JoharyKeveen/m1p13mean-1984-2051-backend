@@ -1,4 +1,6 @@
 const Item = require('../models/Item');
+const path = require('path');
+const fs = require('fs');
 
 // Create - Seulement un user avec rôle "store"
 exports.createItem = async (req, res) => {
@@ -10,10 +12,18 @@ exports.createItem = async (req, res) => {
             });
         }
 
-        const item = new Item({
+        const itemData = {
             ...req.body,
             owner: req.user._id
-        });
+        };
+
+        console.log('Received item data:', req.file);
+
+        if (req.file) {
+            itemData.image_url = `/uploads/items/${req.file.filename}`;
+        }
+
+        const item = new Item(itemData);
         await item.save();
         res.status(201).json(item);
     } catch (error) {
@@ -58,9 +68,21 @@ exports.updateItem = async (req, res) => {
             });
         }
 
+        const updateData = { ...req.body };
+        if (req.file) {
+            // Supprimer l'ancien fichier s'il existe
+            if (item.image_url) {
+                const oldFilePath = path.join(__dirname, '..', item.image_url);
+                if (fs.existsSync(oldFilePath)) {
+                    fs.unlinkSync(oldFilePath);
+                }
+            }
+            updateData.image_url = `/uploads/items/${req.file.filename}`;
+        }
+
         const updatedItem = await Item.findByIdAndUpdate(
-            req.params.id, 
-            req.body, 
+            req.params.id,
+            updateData,
             { new: true }
         );
         
@@ -84,6 +106,14 @@ exports.deleteItem = async (req, res) => {
             return res.status(403).json({ 
                 error: 'Vous pouvez uniquement supprimer vos propres items' 
             });
+        }
+
+        // Supprimer le fichier image s'il existe
+        if (item.image_url) {
+            const filePath = path.join(__dirname, '..', item.image_url);
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
         }
 
         await Item.findByIdAndDelete(req.params.id);

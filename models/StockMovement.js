@@ -3,9 +3,12 @@ const mongoose = require('mongoose');
 const stockMovementSchema = new mongoose.Schema({
     type: { type: String, enum: ['input', 'output'], required: true },
     quantity: { type: Number, required: true },
-    purchasePrice: { type: Number, required: true },
+    purchasePrice: { type: Number, required: false },
     movementDate: { type: Date, default: Date.now },
-    orders: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Order' }]
+
+    // Relations
+    item: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
+    store: { type: mongoose.Schema.Types.ObjectId, ref: 'Store' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('StockMovement', stockMovementSchema);

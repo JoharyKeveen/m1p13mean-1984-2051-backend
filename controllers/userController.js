@@ -31,7 +31,7 @@ const registerUser = async (req, res) => {
     // Construire l'URL du PDp si un fichier est fourni
     let pdp_url = null;
     if (req.file) {
-      pdp_url = `/uploads/${req.file.filename}`;
+      pdp_url = `/uploads/pdps/${req.file.filename}`;
       console.log("Image uploaded:", pdp_url);
     } else {
       console.log("No file received in request");
@@ -94,7 +94,7 @@ const updateProfilePicture = async (req, res) => {
     }
 
     // Construire l'URL du fichier
-    const imageUrl = `/uploads/${req.file.filename}`;
+    const imageUrl = `/uploads/pdps/${req.file.filename}`;
 
     // Mettre à jour l'utilisateur
     const user = await User.findByIdAndUpdate(

@@ -4,26 +4,10 @@ const boxSchema = new mongoose.Schema({
   size: { type: Number, required: true },
   price: { type: Number, required: true },
   status: { type: String, enum: ['available', 'occupied'], default: 'available' },
-
   // Relations
-  store: { type: mongoose.Schema.Types.ObjectId, ref: 'Store', default: null },
-  contract: { type: mongoose.Schema.Types.ObjectId, ref: 'Contract', default: null },
-
+  shopping_center: { type: mongoose.Schema.Types.ObjectId, ref: 'ShoppingCenter', default: null },
   // Historique
-  price_history: [Number],
-  store_history: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Store'
-    }
-  ],
-  contract_history: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Contract'
-    }
-  ]
-
+  price_history: [Number]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Box', boxSchema);

@@ -5,7 +5,7 @@ const {
   loginUser,
   updateProfilePicture,
 } = require("../controllers/userController");
-const upload = require("../middlewares/uploadMiddleware");
+const store_at = require("../middlewares/uploadMiddleware");
 
 // Middleware d'erreur pour multer
 const multerErrorHandler = (err, req, res, next) => {
@@ -18,7 +18,7 @@ const multerErrorHandler = (err, req, res, next) => {
 
 router.post(
   "/register",
-  upload.single("pdp"),
+  store_at('pdps').single("pdp"),
   multerErrorHandler,
   registerUser,
 );
@@ -27,7 +27,7 @@ router.post("/login", loginUser);
 
 router.put(
   "/upload-profile-picture/:id",
-  upload.single("pdp"),
+  store_at('pdps').single("pdp"),
   multerErrorHandler,
   updateProfilePicture,
 );
