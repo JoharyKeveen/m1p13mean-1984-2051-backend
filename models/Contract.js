@@ -1,14 +1,23 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const contractSchema = new mongoose.Schema({
-  file_url: { type: String, required: true },
+const monthlyPeriodSchema = new mongoose.Schema({
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
-  paymentStatus: { type: String, enum: ['pending', 'paid', 'unpaid'], default: 'pending' }
-  
-  //Relations
-  box: { type: mongoose.Schema.Types.ObjectId, ref: 'Box', required: true },
-  store: { type: mongoose.Schema.Types.ObjectId, ref: 'Store', required: true }
-}, { timestamps: true });
+  payment_status: {
+    type: String,
+    enum: ["paid", "unpaid", "pending"],
+    default: "pending",
+  },
+});
 
-module.exports = mongoose.model('Contract', contractSchema);
+const ContractSchema = new mongoose.Schema(
+  {
+    file: { type: String, required: true },
+    periods: [monthlyPeriodSchema],
+
+      //Relations
+    box: { type: mongoose.Schema.Types.ObjectId, ref: 'Box', required: true },
+    store: { type: mongoose.Schema.Types.ObjectId, ref: 'Store', required: true }
+  },{ timestamps: true });
+
+module.exports = mongoose.model("Contract", ContractSchema);
