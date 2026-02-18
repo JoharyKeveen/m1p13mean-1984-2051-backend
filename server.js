@@ -3,6 +3,17 @@ const express = require("express");
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const itemRoutes = require("./routes/itemRoutes");
+const contractRoutes = require("./routes/contractRoutes");
+const boxRoutes = require("./routes/boxRoutes");
+const orderRoutes = require("./routes/orderRoutes");
+const shoppingCenterRoutes = require("./routes/shoppingCenterRoutes");
+const stockRoutes = require("./routes/stockRoutes");
+const stockMovementRoutes = require("./routes/stockMovementRoutes");
+const storeRoutes = require("./routes/storeRoutes");
+const categoryRoutes = require("./routes/categoryRoutes");
+const cashRegisterRoutes = require("./routes/cashRegisterRoutes");
+const cashFlowRoutes = require("./routes/cashFlowRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 const cors = require("cors");
 const path = require("path");
 
@@ -18,12 +29,18 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 connectDB();
 
 app.use("/api/users", userRoutes);
-app.get("/", (req, res) => {
-  res.send("Hello world");
-});
-
-// ITEMS
 app.use("/api/items", itemRoutes);
+app.use('/api/contracts', contractRoutes);
+app.use('/api/boxes', boxRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/shopping-centers', shoppingCenterRoutes);
+app.use('/api/stocks', stockRoutes);
+app.use('/api/stock-movements', stockMovementRoutes);
+app.use('/api/stores', storeRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/cash-registers', cashRegisterRoutes);
+app.use('/api/cash-flows', cashFlowRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Lancement du serveur
 const PORT = process.env.PORT || 5000;

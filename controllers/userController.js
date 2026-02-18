@@ -9,11 +9,6 @@ const generateToken = (id) => {
 // Register user
 const registerUser = async (req, res) => {
   try {
-    console.log("=== Register Request ===");
-    console.log("Body:", req.body);
-    console.log("File:", req.file);
-    console.log("Content-Type:", req.headers["content-type"]);
-
     const { email, password, first_name, last_name, phone, role } = req.body;
 
     if (!email || !password || !first_name || !last_name) {
