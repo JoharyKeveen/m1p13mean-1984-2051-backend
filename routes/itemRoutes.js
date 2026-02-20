@@ -16,12 +16,12 @@ router.get('/', authenticate, getItems);
 router.get('/:id', authenticate, getItemById);
 
 // CREATE - Seulement les stores
-router.post('/', authenticate, store_at('items').single('photo'), createItem);
+router.post('/', authenticate, authorizeRoles('store','admin'), store_at('items').single('photo'), createItem);
 
-// UPDATE - Seulement le store propriétaire (vérifié dans le contrôleur)
-router.put('/:id', authenticate, store_at('items').single('photo'), updateItem);
+// UPDATE - Seulement le propriétaire de l'item
+router.put('/:id', authenticate, authorizeRoles('store','admin'), store_at('items').single('photo'),  updateItem);
 
-// DELETE - Seulement le store propriétaire (vérifié dans le contrôleur)
-router.delete('/:id', authenticate, deleteItem);
+// DELETE - Seulement le propriétaire de l'item
+router.delete('/:id', authenticate, authorizeRoles('store','admin'), deleteItem);
 
 module.exports = router;

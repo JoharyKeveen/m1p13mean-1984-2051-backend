@@ -1,5 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Store = require("../models/Store");
+const Item = require("../models/Item");
 
 // Middleware d'authentification - Vérifier le token JWT
 const authenticate = async (req, res, next) => {
@@ -48,5 +50,6 @@ const authorizeRoles = (...allowedRoles) => {
     next();
   };
 };
+
 
 module.exports = { authenticate, authorizeRoles };

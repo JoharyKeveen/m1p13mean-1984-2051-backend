@@ -2,22 +2,13 @@ const Item = require('../models/Item');
 const path = require('path');
 const fs = require('fs');
 
-// Create - Seulement un user avec rôle "store"
+// Create - owner set from authenticated user (route controls role)
 exports.createItem = async (req, res) => {
     try {
-        // Vérifier que l'utilisateur a le rôle "store"
-        if (req.user.role !== 'store') {
-            return res.status(403).json({ 
-                error: 'Seuls les stores peuvent créer des items' 
-            });
-        }
-
         const itemData = {
             ...req.body,
             owner: req.user._id
         };
-
-        console.log('Received item data:', req.file);
 
         if (req.file) {
             itemData.image_url = `/uploads/items/${req.file.filename}`;
@@ -34,6 +25,10 @@ exports.createItem = async (req, res) => {
 // Read all - Tous les utilisateurs authentifiés
 exports.getItems = async (req, res) => {
     try {
+        if (req.user.role === 'store') {
+            const items = await Item.find({ owner: req.user._id }).populate('owner', 'first_name last_name email');
+            return res.status(200).json(items);
+        }
         const items = await Item.find().populate('owner', 'first_name last_name email');
         res.status(200).json(items);
     } catch (error) {
@@ -44,6 +39,11 @@ exports.getItems = async (req, res) => {
 // Read one - Tous les utilisateurs authentifiés
 exports.getItemById = async (req, res) => {
     try {
+        if (req.user.role === 'store') {
+            const item = await Item.findOne({ _id: req.params.id, owner: req.user._id }).populate('owner', 'first_name last_name email');
+            if (!item) return res.status(404).json({ error: 'Item not found' });
+            return res.status(200).json(item);
+        }
         const item = await Item.findById(req.params.id).populate('owner', 'first_name last_name email');
         if (!item) return res.status(404).json({ error: 'Item not found' });
         res.status(200).json(item);
@@ -56,17 +56,7 @@ exports.getItemById = async (req, res) => {
 exports.updateItem = async (req, res) => {
     try {
         const item = await Item.findById(req.params.id);
-        
-        if (!item) {
-            return res.status(404).json({ error: 'Item not found' });
-        }
-
-        // Vérifier que l'utilisateur est le propriétaire ET a le rôle "store"
-        if (item.owner.toString() !== req.user._id.toString() || req.user.role !== 'store') {
-            return res.status(403).json({ 
-                error: 'Vous pouvez uniquement modifier vos propres items' 
-            });
-        }
+        if (!item) return res.status(404).json({ error: 'Item not found' });
 
         const updateData = { ...req.body };
         if (req.file) {
@@ -96,17 +86,7 @@ exports.updateItem = async (req, res) => {
 exports.deleteItem = async (req, res) => {
     try {
         const item = await Item.findById(req.params.id);
-        
-        if (!item) {
-            return res.status(404).json({ error: 'Item not found' });
-        }
-
-        // Vérifier que l'utilisateur est le propriétaire ET a le rôle "store"
-        if (item.owner.toString() !== req.user._id.toString() || req.user.role !== 'store') {
-            return res.status(403).json({ 
-                error: 'Vous pouvez uniquement supprimer vos propres items' 
-            });
-        }
+        if (!item) return res.status(404).json({ error: 'Item not found' });
 
         // Supprimer le fichier image s'il existe
         if (item.image_url) {

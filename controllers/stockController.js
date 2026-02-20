@@ -1,7 +1,17 @@
 const Stock = require('../models/StockMovement');
+const Item = require('../models/Item');
 
 const createStock = async (req, res) => {
   try {
+    const { item: itemId } = req.body;
+
+    if (!itemId) {
+      return res.status(400).json({ message: 'Item id is required' });
+    }
+
+    const item = await Item.findById(itemId);
+    if (!item) return res.status(404).json({ message: 'Item not found' });
+
     const stock = await Stock.create(req.body);
     res.status(201).json({ stock });
   } catch (error) {

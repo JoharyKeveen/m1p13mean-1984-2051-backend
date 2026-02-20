@@ -1,2 +1,4 @@
 .env
-.env
+uploads/items
+uploads/pdps
+node_modules/
