@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middlewares/authMiddleware');
+const { authenticate, authorizeRoles } = require('../middlewares/authMiddleware');
 const { createShoppingCenter, getAllShoppingCenters, getShoppingCenter, updateShoppingCenter, deleteShoppingCenter } = require('../controllers/shoppingCenterController');
 
-router.get('/', authenticate, getAllShoppingCenters);
-router.get('/:id', authenticate, getShoppingCenter);
-router.post('/', authenticate, createShoppingCenter);
-router.put('/:id', authenticate, updateShoppingCenter);
-router.delete('/:id', authenticate, deleteShoppingCenter);
+router.get('/', authenticate, authorizeRoles('admin'), getAllShoppingCenters);
+router.get('/:id', authenticate, authorizeRoles('admin'), getShoppingCenter);
+router.post('/', authenticate, authorizeRoles('admin'), createShoppingCenter);
+router.put('/:id', authenticate, authorizeRoles('admin'), updateShoppingCenter);
+router.delete('/:id', authenticate, authorizeRoles('admin'), deleteShoppingCenter);
 
 module.exports = router;
