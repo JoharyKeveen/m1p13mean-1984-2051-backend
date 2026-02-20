@@ -1,13 +1,17 @@
 const Item = require('../models/Item');
 const path = require('path');
 const fs = require('fs');
+const Category = require('../models/Category');
+const Store = require('../models/Store');
 
 // Create - owner set from authenticated user (route controls role)
 exports.createItem = async (req, res) => {
     try {
         const itemData = {
             ...req.body,
-            owner: req.user._id
+            category: await Category.findById(req.body.category),
+            store: await Store.findById(req.body.store),
+            owner: req.user._id,
         };
 
         if (req.file) {
