@@ -4,7 +4,7 @@ const Box = require("../models/Box");
 const createContract = async (req, res) => {
   try {
     const { boxId } = req.params;
-    const { startDateLocation, endDateLocation } = req.body;
+    const { startDateLocation, endDateLocation, storeId } = req.body;
 
     if (!req.file) {
       return res.status(400).json({
@@ -47,9 +47,10 @@ const createContract = async (req, res) => {
     const contract = await Contract.create({
       file: fileUrl,
       periods,
+      box: boxId,
+      store: storeId
     });
 
-    box.contract_history.push(contract._id);
     box.status = "occupied";
     await box.save();
 
@@ -68,16 +69,19 @@ const createContract = async (req, res) => {
 const getBoxContractHistory = async (req, res) => {
   try {
     const { boxId } = req.params;
-
-    const box = await Box.findById(boxId)
-    .populate("contract_history");
+    const box = await Box.findById(boxId);
     if (!box) {
       return res.status(404).json({ message: "Box non trouvée" });
     }
 
+    // Récupérer tous les contrats liés à cette box
+    const contracts_history = await Contract.find({ box: boxId })
+      .populate("store")
+      .sort({ createdAt: -1 });
+
     res.status(200).json({
       boxId: box._id,
-      contracts_history: box.contract_history
+      contracts_history,
     });
 
   } catch (error) {
@@ -97,17 +101,19 @@ const terminateContract = async (req, res) => {
 
     const endDate = new Date(terminationDate);
 
+    // Filtrer les périodes après la date de résiliation
     contract.periods = contract.periods.filter(period => {
       return new Date(period.startDate) <= endDate;
     });
 
     await contract.save();
 
-    // Libérer la box
-    await Box.updateOne(
-      { contract: contractId },
-      { status: "available", contract: null, store: null }
-    );
+    if (contract.box) {
+      await Box.findByIdAndUpdate(
+        contract.box,
+        { status: "available" }
+      );
+    }
 
     res.status(200).json({
       message: "Contrat résilié avec succès",
@@ -150,13 +156,4 @@ const payNextUnpaidPeriod = async (req, res) => {
   }
 };
 
-const getAllBox = async (req, res) => {
-  try {
-    const boxes = await Box.find();
-    res.status(200).json({ boxes });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-module.exports = { createContract, getBoxContractHistory, terminateContract, payNextUnpaidPeriod, getAllBox };
+module.exports = { createContract, getBoxContractHistory, terminateContract, payNextUnpaidPeriod };

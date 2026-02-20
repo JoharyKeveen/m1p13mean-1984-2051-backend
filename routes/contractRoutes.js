@@ -1,5 +1,5 @@
 const uploadContract = require("../middlewares/uploadContractMiddleware");
-const { createContract, getAllBox, payNextUnpaidPeriod, terminateContract, getBoxContractHistory } = require("../controllers/contractController");
+const { createContract, payNextUnpaidPeriod, terminateContract, getBoxContractHistory } = require("../controllers/contractController");
 const express = require('express');
 const router = express.Router();
 const multerErrorHandler = (err, req, res, next) => {
@@ -11,29 +11,29 @@ const multerErrorHandler = (err, req, res, next) => {
 };
 
 router.post(
-    "/contract",
+    "/",
     uploadContract.single("file"),
+    authorizeRoles('admin'),
     multerErrorHandler,
     createContract
 );
 
 router.get(
-    "/contracts/:boxId/contracts-history", 
+    "/:boxId/contracts-history", 
+    authorizeRoles('admin'),
     getBoxContractHistory
 );
 
 router.put(
-    "/contracts/:contractId/terminate", 
+    "/:contractId/terminate", 
+    authorizeRoles('admin'),
     terminateContract
 );
 
 router.put(
-    "/contracts/:contractId/pay", 
+    "/:contractId/pay", 
+    authorizeRoles('admin'),
     payNextUnpaidPeriod
-);
-
-router.get("/boxes",
-    getAllBox
 );
 
 module.exports = router;
