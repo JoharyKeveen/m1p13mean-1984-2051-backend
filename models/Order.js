@@ -8,7 +8,6 @@ const orderSchema = new mongoose.Schema({
 
     // Relations
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    store: { type: mongoose.Schema.Types.ObjectId, ref: 'Store' },
     
     // Embedded
     items: [
@@ -21,9 +20,11 @@ const orderSchema = new mongoose.Schema({
         }
     ],
     invoice: {
-        file: { type: String },
-        date: { type: Date }
+        fileName: String,
+        pdf: Buffer,
+        date: Date
     }
+
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);
