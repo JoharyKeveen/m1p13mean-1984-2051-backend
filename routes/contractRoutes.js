@@ -2,6 +2,8 @@ const uploadContract = require("../middlewares/uploadContractMiddleware");
 const { createContract, payNextUnpaidPeriod, terminateContract, getBoxContractHistory } = require("../controllers/contractController");
 const express = require('express');
 const router = express.Router();
+const { authorizeRoles } = require('../middlewares/authMiddleware');
+
 const multerErrorHandler = (err, req, res, next) => {
     if (err) {
         console.error("Multer error:", err);

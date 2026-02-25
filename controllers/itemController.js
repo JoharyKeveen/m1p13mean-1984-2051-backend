@@ -30,10 +30,10 @@ exports.createItem = async (req, res) => {
 exports.getItems = async (req, res) => {
     try {
         if (req.user.role === 'store') {
-            const items = await Item.find({ owner: req.user._id }).populate('owner', 'first_name last_name email');
+            const items = await Item.find({ owner: req.user._id }).populate('owner', 'first_name last_name email').populate('category', 'name').populate('store', 'name');
             return res.status(200).json(items);
         }
-        const items = await Item.find().populate('owner', 'first_name last_name email');
+        const items = await Item.find().populate('owner', 'first_name last_name email').populate('category', 'name').populate('store', 'name');
         res.status(200).json(items);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -44,11 +44,11 @@ exports.getItems = async (req, res) => {
 exports.getItemById = async (req, res) => {
     try {
         if (req.user.role === 'store') {
-            const item = await Item.findOne({ _id: req.params.id, owner: req.user._id }).populate('owner', 'first_name last_name email');
+            const item = await Item.findOne({ _id: req.params.id, owner: req.user._id }).populate('owner', 'first_name last_name email').populate('category', 'name').populate('store', 'name');
             if (!item) return res.status(404).json({ error: 'Item not found' });
             return res.status(200).json(item);
         }
-        const item = await Item.findById(req.params.id).populate('owner', 'first_name last_name email');
+        const item = await Item.findById(req.params.id).populate('owner', 'first_name last_name email').populate('category', 'name').populate('store', 'name');
         if (!item) return res.status(404).json({ error: 'Item not found' });
         res.status(200).json(item);
     } catch (error) {
@@ -60,9 +60,17 @@ exports.getItemById = async (req, res) => {
 exports.updateItem = async (req, res) => {
     try {
         const item = await Item.findById(req.params.id);
+        var prices = [];
+        if (req.body.price !== undefined && Number(req.body.price) !== item.price) {
+            prices = item.price_history;
+            prices.push(item.price);
+        }
         if (!item) return res.status(404).json({ error: 'Item not found' });
 
         const updateData = { ...req.body };
+        if (req.body.price !== undefined) {
+            updateData.price_history = prices;
+        }
         if (req.file) {
             // Supprimer l'ancien fichier s'il existe
             if (item.image_url) {
