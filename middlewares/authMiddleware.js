@@ -43,7 +43,7 @@ const authorizeRoles = (...allowedRoles) => {
 
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
-        message: "Vous n'avez pas les droits nécessaires",
+        message: "Vous n'avez pas les droits nécessaires" + `(required: ${allowedRoles.join(", ")}, your role: ${req.user.role})`,
       });
     }
 

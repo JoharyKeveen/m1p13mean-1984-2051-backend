@@ -14,8 +14,10 @@ const categoryRoutes = require("./routes/categoryRoutes");
 const cashRegisterRoutes = require("./routes/cashRegisterRoutes");
 const cashFlowRoutes = require("./routes/cashFlowRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+
 const cors = require("cors");
 const path = require("path");
+
 
 const app = express();
 
