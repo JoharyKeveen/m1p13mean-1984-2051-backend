@@ -5,10 +5,10 @@ const {
   loginUser,
   updateProfilePicture,
   getCurrentUser,
+  getStoreUsers,
 } = require("../controllers/userController");
 const store_at = require("../middlewares/uploadMiddleware");
-const { get } = require("mongoose");
-const { authenticate } = require("../middlewares/authMiddleware");
+const { authenticate, authorizeRoles } = require("../middlewares/authMiddleware");
 
 // Middleware d'erreur pour multer
 const multerErrorHandler = (err, req, res, next) => {
@@ -36,5 +36,7 @@ router.put(
 );
 
 router.get("/me", authenticate, getCurrentUser);
+
+router.get("/storesUsers", authenticate, authorizeRoles('admin'), getStoreUsers);
 
 module.exports = router;

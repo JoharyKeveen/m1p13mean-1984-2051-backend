@@ -3,8 +3,9 @@ const Store = require('../models/Store');
 const createStore = async (req, res) => {
   try {
     const storeData = {
-      ...req.body,
-      manager: req.user._id
+      name: req.body.name,
+      description: req.body.description,
+      manager: req.body.manager
     };
     const store = await Store.create(storeData);
     res.status(201).json({ store });
