@@ -1,4 +1,5 @@
 const uploadContract = require("../middlewares/uploadContractMiddleware");
+const { authenticate, authorizeRoles } = require('../middlewares/authMiddleware');
 const { createContract, payNextUnpaidPeriod, terminateContract, getBoxContractHistory } = require("../controllers/contractController");
 const express = require('express');
 const router = express.Router();
