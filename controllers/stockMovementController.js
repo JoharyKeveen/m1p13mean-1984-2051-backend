@@ -26,13 +26,28 @@ const createStockMovement = async (req, res) => {
 
 const getAllStockMovements = async (req, res) => {
   try {
+    let filter = {};
+    if (req.query.type) {
+      filter.type = req.query.type;
+    }
+    if (req.query.item_id) {
+      filter.item = req.query.item_id;
+    }
+
     if (req.user.role === 'store') {
       const store = await Store.findOne({ manager: req.user._id });
-      const list = await StockMovement.find({ store: store?._id }).populate('item store');
-      return res.status(200).json({ stockMovements: list });
+      if (!store) {
+        return res.status(404).json({ message: 'Store not found for this manager' });
+      }
+      filter.store = store._id;
     }
-    const list = await StockMovement.find().populate('item store');
+
+    const list = await StockMovement
+      .find(filter)
+      .populate('item store');
+
     res.status(200).json({ stockMovements: list });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -48,14 +63,6 @@ const getStockMovement = async (req, res) => {
   }
 };
 
-// type: { type: String, enum: ['input', 'output'], required: true },
-// quantity: { type: Number, required: true },
-// purchasePrice: { type: Number, required: false },
-// movementDate: { type: Date, default: Date.now },
-
-// // Relations
-// item: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
-// store: { type: mongoose.Schema.Types.ObjectId, ref: 'Store' },
 
 const updateStockMovement = async (req, res) => {
   try {

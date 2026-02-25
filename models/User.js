@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const mongoose = require("mongoose");
 const { ROLES, DEFAULT_ROLE } = require("../config/roles");
+const Store = require("./Store");
 
 const userSchema = mongoose.Schema({
   pdp_url: { type: String },
@@ -24,6 +25,14 @@ userSchema.pre("save", async function () {
 // Vérifier le mot de passe
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// Récupérer le magasin associé à l'utilisateur (si c'est un store)
+userSchema.methods.getUserStore = async function () {
+  if (this.role !== 'store') return null;
+
+  const store = await Store.findOne({ manager: this._id });
+  return store;
 };
 
 
