@@ -10,9 +10,11 @@ exports.createItem = async (req, res) => {
         const itemData = {
             ...req.body,
             category: await Category.findById(req.body.category),
-            store: await Store.findById(req.body.store),
             owner: req.user._id,
         };
+        const userStore = await req.user.getUserStore();
+        if (!userStore) return res.status(400).json({ error: 'User does not have an associated store' });
+        itemData.store = userStore._id;
 
         if (req.file) {
             itemData.image_url = `/uploads/items/${req.file.filename}`;
