@@ -3,8 +3,10 @@ const Box = require("../models/Box");
 
 const createContract = async (req, res) => {
   try {
+
     const { boxId } = req.params;
     const { startDateLocation, endDateLocation, storeId } = req.body;
+    console.log(req.body);
 
     if (!req.file) {
       return res.status(400).json({
@@ -12,7 +14,11 @@ const createContract = async (req, res) => {
       });
     }
 
-    const fileUrl = `/uploads/contracts/${req.file.filename}`;
+    if (!startDateLocation || !endDateLocation || !storeId) {
+      return res.status(400).json({
+        message: "Missing contract data"
+      });
+    }
 
     const box = await Box.findById(boxId);
     if (!box) {
@@ -26,6 +32,7 @@ const createContract = async (req, res) => {
     let current = new Date(start);
 
     while (current <= end) {
+
       let monthStart = new Date(current);
       let monthEnd = new Date(
         current.getFullYear(),
@@ -45,7 +52,7 @@ const createContract = async (req, res) => {
     }
 
     const contract = await Contract.create({
-      file: fileUrl,
+      file: `/uploads/contracts/${req.file.filename}`,
       periods,
       box: boxId,
       store: storeId
@@ -74,7 +81,6 @@ const getBoxContractHistory = async (req, res) => {
       return res.status(404).json({ message: "Box non trouvée" });
     }
 
-    // Récupérer tous les contrats liés à cette box
     const contracts_history = await Contract.find({ box: boxId })
       .populate("store")
       .sort({ createdAt: -1 });

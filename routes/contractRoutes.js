@@ -13,27 +13,31 @@ const multerErrorHandler = (err, req, res, next) => {
 };
 
 router.post(
-    "/",
-    uploadContract.single("file"),
+    "/:boxId",
+    authenticate,
     authorizeRoles('admin'),
+    uploadContract.single("file"),
     multerErrorHandler,
     createContract
 );
 
 router.get(
     "/:boxId/contracts-history", 
+    authenticate,
     authorizeRoles('admin'),
     getBoxContractHistory
 );
 
 router.put(
     "/:contractId/terminate", 
+    authenticate,
     authorizeRoles('admin'),
     terminateContract
 );
 
 router.put(
     "/:contractId/pay", 
+    authenticate,
     authorizeRoles('admin'),
     payNextUnpaidPeriod
 );
