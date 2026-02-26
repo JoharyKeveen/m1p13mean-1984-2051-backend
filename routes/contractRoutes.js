@@ -1,5 +1,5 @@
 const uploadContract = require("../middlewares/uploadContractMiddleware");
-const { createContract, payNextUnpaidPeriod, terminateContract, getBoxContractHistory } = require("../controllers/contractController");
+const { createContract, payNextUnpaidPeriod, terminateContract, getBoxContractHistory, getCurrentContract } = require("../controllers/contractController");
 const express = require('express');
 const router = express.Router();
 const { authenticate, authorizeRoles } = require('../middlewares/authMiddleware');
@@ -40,6 +40,13 @@ router.put(
     authenticate,
     authorizeRoles('admin'),
     payNextUnpaidPeriod
+);
+
+router.get(
+  "/:boxId/current-contract",
+  authenticate,
+  authorizeRoles('admin'),
+  getCurrentContract
 );
 
 module.exports = router;
