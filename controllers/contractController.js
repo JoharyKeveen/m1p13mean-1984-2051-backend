@@ -31,7 +31,7 @@ const createContract = async (req, res) => {
     let periods = [];
     let current = new Date(start);
 
-    while (current <= end) {
+    while (current < end) {
 
       let monthStart = new Date(current);
       let monthEnd = new Date(
