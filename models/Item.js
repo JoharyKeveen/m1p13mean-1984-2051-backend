@@ -5,7 +5,6 @@ const itemSchema = new mongoose.Schema({
     description: { type: String },
     price: { type: Number, required: true },
     quantity: { type: Number, required: true, default: 0, min: 0 },
-    type_stock: { type: String, enum: ['FIFO', 'LIFO'], default: 'FIFO' },
     active: { type: Boolean, default: true },
     image_url: { type: String },
 
