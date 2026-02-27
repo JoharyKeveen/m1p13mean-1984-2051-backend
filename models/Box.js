@@ -11,3 +11,10 @@ const boxSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 module.exports = mongoose.model('Box', boxSchema);
+
+
+
+
+
+
+
