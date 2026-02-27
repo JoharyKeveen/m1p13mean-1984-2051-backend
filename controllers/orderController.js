@@ -1,6 +1,8 @@
 const Order = require('../models/Order');
 const PDFDocument = require("pdfkit");
-const getStream = require("get-stream");
+const getStream = require('get-stream');
+const Item = require('../models/Item');
+const StockMovement = require('../models/StockMovement');
 
 const createOrder = async (req, res) => {
   try {
@@ -51,154 +53,60 @@ const deleteOrder = async (req, res) => {
 };
 
 const addToCart = async (req, res) => {
-  try {
-    const { items } = req.body;
-    const userId = req.user._id;
-
-    if (!items || items.length === 0) {
-      return res.status(400).json({ message: "Liste vide" });
-    }
-
-    let order = await Order.findOne({
-      owner: userId,
+  try { 
+    const { items_details } = req.body;
+    const order = await Order.findOne({
+      owner: req.user.id,
       status: "pending"
     });
 
     if (!order) {
-      order = new Order({
-        owner: userId,
-        items: [],
-        total: 0
+      const newOrder = new Order({
+        owner: req.user.id,
+        total: await getTotalAndAssignSubTotal(items_details),
+        items: items_details
       });
+      await newOrder.save();
+      return res.status(201).json(newOrder);
     }
-
-    const itemIds = items.map(i => i.itemId);
-    const dbItems = await Item.find({ _id: { $in: itemIds } });
-
-    if (dbItems.length !== items.length) {
-      return res.status(404).json({ message: "Certains produits introuvables" });
-    }
-
-    for (let incoming of items) {
-
-      const dbItem = dbItems.find(
-        d => d._id.toString() === incoming.itemId
-      );
-
-      const existing = order.items.find(
-        i => i.item.toString() === incoming.itemId
-      );
-
-      if (existing) {
-        existing.quantity += incoming.quantity;
-        existing.subTotal =
-          existing.quantity * existing.unitPrice;
-      } else {
-        order.items.push({
-          item: dbItem._id,
-          name: dbItem.name,
-          quantity: incoming.quantity,
-          unitPrice: dbItem.price,
-          subTotal: incoming.quantity * dbItem.price
-        });
-      }
-    }
-
-    order.total = order.items.reduce(
-      (sum, i) => sum + i.subTotal,
-      0
-    );
-
+    order.total = await getTotalAndAssignSubTotal(items_details);
+    order.items = items_details;
     await order.save();
 
-    res.json(order);
+    res.status(200).json({ order: order });
 
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-const removeItemsFromCart = async (req, res) => {
-  const { itemIds } = req.body;
-  const order = await Order.findOne({
-    owner: req.user.id,
-    status: "pending"
-  });
-
-  if (!order) {
-    return res.status(400).json({ message: "Panier vide" });
+const getTotalAndAssignSubTotal = async (items_details) => {
+  for (let i of items_details) {
+    var item = await Item.findById(i.item);
+    if (!item) throw new Error(`Item with id ${i.item} not found`);
+    if (item.quantity < i.quantity) throw new Error(`Stock insufficient for item ${item.name}`);
+    if (i.quantity <= 0) throw new Error(`Quantity must be greater than 0 for item ${item.name}`);
+    i.unitPrice = item.price;
+    i.subTotal = i.quantity * i.unitPrice;
   }
-
-  order.items = order.items.filter(
-    i => !itemIds.includes(i.item.toString())
-  );
-
-  order.total = order.items.reduce(
-    (sum, i) => sum + i.subTotal,
-    0
-  );
-
-  await order.save();
-
-  res.json(order);
-};
+  return items_details.reduce((sum, i) => sum + i.subTotal, 0);
+}
 
 const checkout = async (req, res) => {
   try {
-    const userId = req.user._id;
-
     const order = await Order.findOne({
-      owner: userId,
+      owner: req.user.id,
       status: "pending"
-    });
+    }).populate('items.item');
 
-    if (!order || order.items.length === 0) {
-      return res.status(400).json({ message: "Panier vide" });
-    }
+    if (!order) return res.status(404).json({ message: 'No pending order found' });
 
-    // Vérification stock
-    for (let cartItem of order.items) {
-      const dbItem = await Item.findById(cartItem.item);
+    // Vérification stock et mise à jour item quantity, add stock output
+    await verifyStockForOrder(order,res);
 
-      if (dbItem.quantity < cartItem.quantity) {
-        return res.status(400).json({
-          message: `Stock insuffisant pour ${dbItem.name}`
-        });
-      }
-    }
-
-    // eto ela le mi modifier code de asina resaka stock
-    //
-    //
-    //
-    //
 
     // Génération PDF
-    const doc = new PDFDocument();
-    const stream = doc.pipe(require("stream").PassThrough());
-
-    doc.fontSize(20).text("FACTURE", { align: "center" });
-    doc.moveDown();
-
-    doc.fontSize(12).text(`Commande ID: ${order._id}`);
-    doc.text(`Date: ${new Date().toLocaleDateString()}`);
-    doc.moveDown();
-
-    doc.text("Produits:");
-    doc.moveDown();
-
-    order.items.forEach(item => {
-      doc.text(
-        `${item.name} - ${item.quantity} x ${item.unitPrice} = ${item.subTotal}`
-      );
-    });
-
-    doc.moveDown();
-    doc.text(`TOTAL: ${order.total}`, { align: "right" });
-
-    doc.end();
-
-    const pdfBuffer = await getStream.buffer(stream);
+    const pdfBuffer = await generateInvoicePDF(order);
 
     // Mise à jour commande
     order.status = "paid";
@@ -212,7 +120,7 @@ const checkout = async (req, res) => {
 
     await order.save();
 
-    res.json({
+    res.status(200).json({
       message: "Commande validée",
       orderId: order._id
     });
@@ -220,6 +128,54 @@ const checkout = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+};
+
+
+const verifyStockForOrder = async (order, res) => {
+  for (let i of order.items) {
+    const item = await Item.findById(i.item._id);
+    if (!item) return res.status(404).json({ message: `Item with id ${i.item._id} not found` });
+    if (item.quantity < i.quantity) return res.status(400).json({ message: `Stock insufficient for item ${item.name}` });
+    item.quantity -= i.quantity;
+    const stockMovementData = {
+      type: 'output',
+      quantity: i.quantity,
+      purchasePrice: item.price,
+      item: item._id,
+      store: item.store._id
+    };
+    await StockMovement.create(stockMovementData);
+    await item.save();
+  }
+};
+
+const generateInvoicePDF = async (order) => {
+  const doc = new PDFDocument();
+  const stream = doc.pipe(require("stream").PassThrough());
+
+  doc.fontSize(20).text("FACTURE", { align: "center" });
+  doc.moveDown();
+
+  doc.fontSize(12).text(`Commande ID: ${order._id}`);
+  doc.text(`Date: ${new Date().toLocaleDateString()}`);
+  doc.moveDown();
+
+  doc.text("Produits:");
+  doc.moveDown();
+
+  order.items.forEach(item => {
+    doc.text(
+      `${item.name} - ${item.quantity} x ${item.unitPrice} = ${item.subTotal}`
+    );
+  });
+
+  doc.moveDown();
+  doc.text(`TOTAL: ${order.total}`, { align: "right" });
+
+  doc.end();
+
+  const pdfBuffer = await getStream.buffer(stream);
+  return pdfBuffer;
 };
 
 const downloadInvoice = async (req, res) => {
@@ -247,4 +203,4 @@ const downloadInvoice = async (req, res) => {
   }
 };
 
-module.exports = { createOrder, getAllOrders, getOrder, updateOrder, deleteOrder, addToCart, removeItemsFromCart, checkout, downloadInvoice};
+module.exports = { createOrder, getAllOrders, getOrder, updateOrder, deleteOrder, addToCart, checkout, downloadInvoice};
