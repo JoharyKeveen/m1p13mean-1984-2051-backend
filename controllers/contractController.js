@@ -3,8 +3,10 @@ const Box = require("../models/Box");
 
 const createContract = async (req, res) => {
   try {
+
     const { boxId } = req.params;
     const { startDateLocation, endDateLocation, storeId } = req.body;
+    console.log(req.body);
 
     if (!req.file) {
       return res.status(400).json({
@@ -12,7 +14,11 @@ const createContract = async (req, res) => {
       });
     }
 
-    const fileUrl = `/uploads/contracts/${req.file.filename}`;
+    if (!startDateLocation || !endDateLocation || !storeId) {
+      return res.status(400).json({
+        message: "Missing contract data"
+      });
+    }
 
     const box = await Box.findById(boxId);
     if (!box) {
@@ -25,7 +31,8 @@ const createContract = async (req, res) => {
     let periods = [];
     let current = new Date(start);
 
-    while (current <= end) {
+    while (current < end) {
+
       let monthStart = new Date(current);
       let monthEnd = new Date(
         current.getFullYear(),
@@ -45,7 +52,7 @@ const createContract = async (req, res) => {
     }
 
     const contract = await Contract.create({
-      file: fileUrl,
+      file: `/uploads/contracts/${req.file.filename}`,
       periods,
       box: boxId,
       store: storeId
@@ -68,24 +75,31 @@ const createContract = async (req, res) => {
 
 const getBoxContractHistory = async (req, res) => {
   try {
+
     const { boxId } = req.params;
+
     const box = await Box.findById(boxId);
     if (!box) {
       return res.status(404).json({ message: "Box non trouvée" });
     }
 
-    // Récupérer tous les contrats liés à cette box
     const contracts_history = await Contract.find({ box: boxId })
-      .populate("store")
+      .populate({
+        path: "store",
+        select: "name _id"
+      })
+      .populate({
+        path: "box",
+        select: "name _id"
+      })
       .sort({ createdAt: -1 });
 
-    res.status(200).json({
-      boxId: box._id,
-      contracts_history,
-    });
+    res.status(200).json(contracts_history);
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message
+    });
   }
 };
 
@@ -98,15 +112,6 @@ const terminateContract = async (req, res) => {
     if (!contract) {
       return res.status(404).json({ message: "Contrat non trouvé" });
     }
-
-    const endDate = new Date(terminationDate);
-
-    // Filtrer les périodes après la date de résiliation
-    contract.periods = contract.periods.filter(period => {
-      return new Date(period.startDate) <= endDate;
-    });
-
-    await contract.save();
 
     if (contract.box) {
       await Box.findByIdAndUpdate(
@@ -156,4 +161,39 @@ const payNextUnpaidPeriod = async (req, res) => {
   }
 };
 
-module.exports = { createContract, getBoxContractHistory, terminateContract, payNextUnpaidPeriod };
+const getCurrentContract = async (req, res) => {
+  try {
+
+    const { boxId } = req.params;
+    const today = new Date();
+
+    const contract = await Contract.findOne({
+      box: boxId,
+      "periods.startDate": { $lte: today },
+      "periods.endDate": { $gte: today }
+    })
+    .populate({
+      path: "store",
+      select: "name _id"
+    })
+    .populate({
+      path: "box",
+      select: "name _id"
+    });
+
+    if (!contract) {
+      return res.status(404).json({
+        message: "Aucun contrat actif trouvé"
+      });
+    }
+
+    res.status(200).json(contract);
+
+  } catch (error) {
+    res.status(500).json({
+      message: error.message
+    });
+  }
+};
+
+module.exports = { createContract, getBoxContractHistory, terminateContract, payNextUnpaidPeriod, getCurrentContract };
