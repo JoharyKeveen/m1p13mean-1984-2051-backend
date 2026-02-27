@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const Store = require("../models/Store");
 const jwt = require("jsonwebtoken");
 
 // Générer token
@@ -42,6 +43,12 @@ const registerUser = async (req, res) => {
       pdp_url,
     });
 
+    const store = await Store.create({
+      name: "Default", 
+      description: "No description",
+      manager: user
+    });
+
     res.status(201).json({
       _id: user._id,
       first_name: user.first_name,
@@ -58,11 +65,43 @@ const registerUser = async (req, res) => {
   }
 };
 
+
+// Edit user
+const updateUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params._id);
+    if (!user) return res.status(500).json({ message: "No user found" });
+    user = {
+      email: req.body.email, 
+      first_name: req.body.first_name, 
+      last_name: req.body.last_name, 
+      phone: req.body.phone, 
+      adress: req.body.adress
+    };
+    let pdp_url = null;
+    if (req.file) {
+      pdp_url = `/uploads/pdps/${req.file.filename}`;
+      console.log("Image uploaded:", pdp_url);
+    } else {
+      console.log("No file received in request");
+    }
+    const userNew = await User.findByIdAndUpdate(req.params._id, user, {new: true} );
+    
+    res.status(201).json({
+      userNew
+    });
+  } catch (error) {
+    console.error("Register error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Login user
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email }).select("+password");
+
   if (user && (await user.matchPassword(password))) {
     res.json({
       _id: user._id,
@@ -133,4 +172,4 @@ const getStoreUsers = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, updateProfilePicture, getCurrentUser, getStoreUsers };
+module.exports = { registerUser, loginUser, updateProfilePicture, getCurrentUser, getStoreUsers, updateUser };

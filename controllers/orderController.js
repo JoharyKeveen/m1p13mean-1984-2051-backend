@@ -15,7 +15,17 @@ const createOrder = async (req, res) => {
 
 const getAllOrders = async (req, res) => {
   try {
-    const orders = await Order.find().populate('owner store');
+    if (req.user.role === 'buyer') {
+      const orders = await Order.find({ owner: req.user._id }).populate('owner').populate('items.item');
+      return res.status(200).json({ orders });
+    } else if (req.user.role === 'store') {
+      const storeOrders = [];
+      const items = await Item.find({ owner: req.user._id });
+      const itemIds = items.map(i => i._id);
+      const orders = await Order.find({ 'items.item': { $in: itemIds } }).populate('owner').populate('items.item');
+      return res.status(200).json({ orders });
+    }
+    const orders = await Order.find().populate('owner');
     res.status(200).json({ orders });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -70,7 +80,7 @@ const addToCart = async (req, res) => {
       return res.status(201).json(newOrder);
     }
     order.total = await getTotalAndAssignSubTotal(items_details);
-    order.items = items_details;
+    order.items = resolveItemsDetails(order.items, items_details);
     await order.save();
 
     res.status(200).json({ order: order });
@@ -81,6 +91,7 @@ const addToCart = async (req, res) => {
 };
 
 const getTotalAndAssignSubTotal = async (items_details) => {
+  var total = 0;
   for (let i of items_details) {
     var item = await Item.findById(i.item);
     if (!item) throw new Error(`Item with id ${i.item} not found`);
@@ -88,8 +99,9 @@ const getTotalAndAssignSubTotal = async (items_details) => {
     if (i.quantity <= 0) throw new Error(`Quantity must be greater than 0 for item ${item.name}`);
     i.unitPrice = item.price;
     i.subTotal = i.quantity * i.unitPrice;
+    total += i.subTotal;
   }
-  return items_details.reduce((sum, i) => sum + i.subTotal, 0);
+  return total;
 }
 
 const checkout = async (req, res) => {
@@ -130,6 +142,20 @@ const checkout = async (req, res) => {
   }
 };
 
+const resolveItemsDetails = (last_details, new_details) => {
+  const map = new Map();
+  // Mettre les anciens
+  last_details.forEach(detail => {
+    map.set(detail.item.toString(), detail);
+  });
+
+  // Remplacer ou ajouter les nouveaux
+  new_details.forEach(detail => {
+    map.set(detail.item.toString(), detail);
+  });
+
+  return Array.from(map.values());
+};
 
 const verifyStockForOrder = async (order, res) => {
   for (let i of order.items) {
@@ -204,3 +230,4 @@ const downloadInvoice = async (req, res) => {
 };
 
 module.exports = { createOrder, getAllOrders, getOrder, updateOrder, deleteOrder, addToCart, checkout, downloadInvoice};
+

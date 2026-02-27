@@ -3,7 +3,7 @@ const router = express.Router();
 const {
   registerUser,
   loginUser,
-  updateProfilePicture,
+  updateUser,
   getCurrentUser,
   getStoreUsers,
 } = require("../controllers/userController");
@@ -29,10 +29,10 @@ router.post(
 router.post("/login", loginUser);
 
 router.put(
-  "/upload-profile-picture/:id",
+  "/:id",
   store_at('pdps').single("pdp"),
   multerErrorHandler,
-  updateProfilePicture,
+  updateUser,
 );
 
 router.get("/me", authenticate, getCurrentUser);
