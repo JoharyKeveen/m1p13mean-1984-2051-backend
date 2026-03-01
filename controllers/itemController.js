@@ -19,8 +19,8 @@ exports.createItem = async (req, res) => {
         itemData.store = userStore._id;
 
         if (req.file) {
-            // itemData.image_url = `/uploads/items/${req.file.filename}`;
-            itemData.image_url = compressImage(req, "items");
+            itemData.image_url = `/uploads/items/${req.file.filename}`;
+            itemData.image_url = await compressImage(req, "items");
         }
 
         
@@ -36,11 +36,17 @@ exports.createItem = async (req, res) => {
 // Read all - Tous les utilisateurs authentifiés
 exports.getItems = async (req, res) => {
     try {
-        if (req.user.role === 'store') {
-            const items = await Item.find({ owner: req.user._id }).populate('owner', 'first_name last_name email').populate('category', 'name').populate('store', 'name');
-            return res.status(200).json(items);
+        let filter = {};
+        if (req.query.search) {
+            filter.name = { $regex: req.query.search, $options: 'i' };
         }
-        const items = await Item.find().populate('owner', 'first_name last_name email').populate('category', 'name').populate('store', 'name');
+        if (req.query.category_id) {
+            filter.category_id = req.query.category_id;
+        }
+        if (req.user.role === 'store') {
+            filter.owner = req.user._id;
+        }
+        const items = await Item.find(filter).populate('owner', 'first_name last_name email').populate('category', 'name').populate('store', 'name');
         res.status(200).json(items);
     } catch (error) {
         res.status(500).json({ error: error.message });
