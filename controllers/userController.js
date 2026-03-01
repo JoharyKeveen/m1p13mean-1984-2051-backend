@@ -1,6 +1,9 @@
 const User = require("../models/User");
 const Store = require("../models/Store");
 const jwt = require("jsonwebtoken");
+const sharp = require('sharp');
+const fs = require('fs');
+const path = require('path');
 
 // Générer token
 const generateToken = (id) => {
@@ -27,8 +30,8 @@ const registerUser = async (req, res) => {
     // Construire l'URL du PDp si un fichier est fourni
     let pdp_url = null;
     if (req.file) {
-      pdp_url = `/uploads/pdps/${req.file.filename}`;
-      console.log("Image uploaded:", pdp_url);
+      // pdp_url = `/uploads/pdps/${req.file.filename}`;
+      pdp_url = await compressImage(req, "pdps");
     } else {
       console.log("No file received in request");
     }
@@ -69,31 +72,46 @@ const registerUser = async (req, res) => {
 // Edit user
 const updateUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params._id);
-    if (!user) return res.status(500).json({ message: "No user found" });
-    user = {
-      email: req.body.email, 
-      first_name: req.body.first_name, 
-      last_name: req.body.last_name, 
-      phone: req.body.phone, 
-      adress: req.body.adress
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "No user found" });
+
+    // Construction des champs à mettre à jour
+    const updateData = {
+      email: req.body.email || user.email,
+      first_name: req.body.first_name || user.first_name,
+      last_name: req.body.last_name || user.last_name,
+      phone: req.body.phone || user.phone,
+      adress: req.body.adress || user.adress,
     };
-    let pdp_url = null;
+
     if (req.file) {
-      pdp_url = `/uploads/pdps/${req.file.filename}`;
-      console.log("Image uploaded:", pdp_url);
-    } else {
-      console.log("No file received in request");
+      updateData.pdp_url = await compressImage(req, "pdps");
     }
-    const userNew = await User.findByIdAndUpdate(req.params._id, user, {new: true} );
-    
-    res.status(201).json({
-      userNew
-    });
+
+    // Mise à jour dans la base
+    const updatedUser = await User.findByIdAndUpdate(req.params.id, updateData, { new: true });
+
+    res.status(200).json({ updatedUser });
   } catch (error) {
-    console.error("Register error:", error);
+    console.error("Update user error:", error);
     res.status(500).json({ message: error.message });
   }
+};
+
+const compressImage = async (req, dir) => {
+  const uploadDir = path.join(__dirname, "../uploads/" + dir);
+  const originalPath = req.file.path;
+  const compressedPath = path.join(uploadDir, "compressed-" + req.file.filename);
+
+  // Redimensionner et compresser l'image
+  await sharp(originalPath)
+    .resize({ width: 500, height: 500, fit: 'inside' }) // garde le ratio
+    .jpeg({ quality: 80 }) // compresse en JPEG à 80%
+    .toFile(compressedPath);
+
+  fs.unlinkSync(originalPath);
+
+  return  `/uploads/${dir}/compressed-${req.file.filename}`;
 };
 
 // Login user

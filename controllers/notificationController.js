@@ -1,51 +1,55 @@
-const Notification = require('../models/Notification');
+const Notification = require("../models/Notification");
+const jwt = require("jsonwebtoken");
 
+const notificationStream = (req, res) => {
+  const token = req.query.token;
+  if (!token) return res.status(401).end();
+
+  let userId;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    userId = decoded.id;
+  } catch (err) {
+    return res.status(401).end();
+  }
+
+  // Headers SSE
+  res.set({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive"
+  });
+  res.flushHeaders();
+
+  // Init tableau global pour le user
+  if (!global.sseClients) global.sseClients = {};
+  if (!global.sseClients[userId]) global.sseClients[userId] = [];
+
+  // Ajouter la fonction d’envoi pour ce client
+  const sendFn = (notif) => res.write(`data: ${JSON.stringify(notif)}\n\n`);
+  global.sseClients[userId].push(sendFn);
+
+  // Ping pour garder la connexion vivante
+  const ping = setInterval(() => res.write(":\n\n"), 30000);
+
+  // Cleanup à la fermeture de connexion
+  req.on("close", () => {
+    clearInterval(ping);
+    global.sseClients[userId] = global.sseClients[userId].filter(fn => fn !== sendFn);
+    res.end();
+  });
+};
+
+// Créer notification (peut être utilisé depuis n’importe quel controller)
 const createNotification = async (req, res) => {
+  const { userId, title, text } = req.body;
   try {
-    const n = await Notification.create(req.body);
-    res.status(201).json({ notification: n });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const notif = await Notification.send(userId, title, text);
+    res.status(201).json(notif);
+  } catch (err) {
+    console.error("Erreur création notification:", err);
+    res.status(500).json({ message: "Erreur création notification" });
   }
 };
 
-const getAllNotifications = async (req, res) => {
-  try {
-    const list = await Notification.find().populate('user');
-    res.status(200).json({ notifications: list });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-const getNotification = async (req, res) => {
-  try {
-    const n = await Notification.findById(req.params.id).populate('user');
-    if (!n) return res.status(404).json({ message: 'Notification not found' });
-    res.status(200).json({ notification: n });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-const updateNotification = async (req, res) => {
-  try {
-    const n = await Notification.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!n) return res.status(404).json({ message: 'Notification not found' });
-    res.status(200).json({ notification: n });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-const deleteNotification = async (req, res) => {
-  try {
-    const n = await Notification.findByIdAndDelete(req.params.id);
-    if (!n) return res.status(404).json({ message: 'Notification not found' });
-    res.status(200).json({ message: 'Notification deleted' });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-module.exports = { createNotification, getAllNotifications, getNotification, updateNotification, deleteNotification };
+module.exports = { notificationStream, createNotification };

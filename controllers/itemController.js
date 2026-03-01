@@ -1,8 +1,10 @@
 const Item = require('../models/Item');
 const path = require('path');
 const fs = require('fs');
+const sharp = require('sharp');
 const Category = require('../models/Category');
 const Store = require('../models/Store');
+const Notification = require("../models/Notification");
 
 // Create - owner set from authenticated user (route controls role)
 exports.createItem = async (req, res) => {
@@ -17,10 +19,13 @@ exports.createItem = async (req, res) => {
         itemData.store = userStore._id;
 
         if (req.file) {
-            itemData.image_url = `/uploads/items/${req.file.filename}`;
+            // itemData.image_url = `/uploads/items/${req.file.filename}`;
+            itemData.image_url = compressImage(req, "items");
         }
 
+        
         const item = new Item(itemData);
+        const notif = await Notification.send(req.user._id, "Item creation", "Your Item is created.");
         await item.save();
         res.status(201).json(item);
     } catch (error) {
@@ -56,6 +61,22 @@ exports.getItemById = async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
+};
+
+const compressImage = async (req, dir) => {
+  const uploadDir = path.join(__dirname, "../uploads/" + dir);
+  const originalPath = req.file.path;
+  const compressedPath = path.join(uploadDir, "compressed-" + req.file.filename);
+
+  // Redimensionner et compresser l'image
+  await sharp(originalPath)
+    .resize({ width: 500, height: 500, fit: 'inside' }) // garde le ratio
+    .jpeg({ quality: 80 }) // compresse en JPEG à 80%
+    .toFile(compressedPath);
+
+  fs.unlinkSync(originalPath);
+
+  return  `/uploads/${dir}/compressed-${req.file.filename}`;
 };
 
 // Update - Seulement le store propriétaire de l'item

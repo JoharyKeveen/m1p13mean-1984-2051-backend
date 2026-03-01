@@ -13,7 +13,8 @@ const userSchema = mongoose.Schema({
   phone : { type: String },
   status: { type: Boolean, default: true },
   adress: { type: String },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+
 });
 
 userSchema.pre("save", async function () {
