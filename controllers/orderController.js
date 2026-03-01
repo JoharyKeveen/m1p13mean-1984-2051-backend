@@ -15,17 +15,22 @@ const createOrder = async (req, res) => {
 
 const getAllOrders = async (req, res) => {
   try {
+    let filter = {};
+    if (req.query.statut) {
+      filter.status = req.query.statut;
+    }
     if (req.user.role === 'buyer') {
-      const orders = await Order.find({ owner: req.user._id }).populate('owner').populate('items.item');
-      return res.status(200).json({ orders });
+      filter.owner = req.user._id;
+      // const orders = await Order.find({ owner: req.user._id }).populate('owner').populate('items.item');
+      // return res.status(200).json({ orders });
     } else if (req.user.role === 'store') {
-      const storeOrders = [];
       const items = await Item.find({ owner: req.user._id });
       const itemIds = items.map(i => i._id);
-      const orders = await Order.find({ 'items.item': { $in: itemIds } }).populate('owner').populate('items.item');
-      return res.status(200).json({ orders });
+      filter['items.item'] = { $in: itemIds };
+      // const orders = await Order.find({ 'items.item': { $in: itemIds }, status: filter.statut }).populate('owner').populate('items.item');
+      // return res.status(200).json({ orders });
     }
-    const orders = await Order.find().populate('owner');
+    const orders = await Order.find(filter).populate('owner').populate('items.item');
     res.status(200).json({ orders });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -118,17 +123,17 @@ const checkout = async (req, res) => {
 
 
     // Génération PDF
-    const pdfBuffer = await generateInvoicePDF(order);
+    // const pdfBuffer = await generateInvoicePDF(order);
 
     // Mise à jour commande
     order.status = "paid";
     order.paymentMethod = req.body.paymentMethod;
 
-    order.invoice = {
-      fileName: `invoice_${order._id}.pdf`,
-      pdf: pdfBuffer,
-      date: new Date()
-    };
+    // order.invoice = {
+    //   fileName: `invoice_${order._id}.pdf`,
+    //   pdf: pdfBuffer,
+    //   date: new Date()
+    // };
 
     await order.save();
 
