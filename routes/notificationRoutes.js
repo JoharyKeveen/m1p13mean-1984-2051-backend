@@ -17,7 +17,7 @@ router.get("/", authenticate, async (req, res) => {
   res.status(200).json({notifications: notifs});
 });
 
-router.get("/viewAll", authenticate, async (req, res) => {
+router.put("/viewAll", authenticate, async (req, res) => {
   try {
     await Notification.updateMany(
       { user: req.user._id, given: { $ne: true } }, // seules les non-viewed
