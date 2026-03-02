@@ -22,12 +22,21 @@ const path = require("path");
 
 const app = express();
 
+const allowedOrigins = [
+  "http://localhost:4200",
+  "https://vendeo.netlify.app",
+];
+
 app.use(cors({
-  origin: [
-    "https://vendeo.netlify.app/"
-  ],
-  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type","Authorization"],
+  origin: (origin, cb) => {
+    // autorise aussi curl/postman (origin undefined)
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true, // true seulement si cookies/sessions
 }));
 app.options(/.*/, cors());
 app.use(express.json());
